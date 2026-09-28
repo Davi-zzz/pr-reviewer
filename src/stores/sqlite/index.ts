@@ -89,11 +89,12 @@ export function createSqliteStore(env: Env): ResultStore {
     INSERT INTO prs (key, workspace, repo, pr_id, title, description, author, url, source_branch, dest_branch,
                      commit_hash, created_on, updated_on, diffstat_json, is_open, last_seen_at)
     VALUES (@key, @workspace, @repo, @id, @title, @description, @author, @url, @sourceBranch, @destBranch,
-            @commit, @createdOn, @updatedOn, @diffStatJson, 1, @now)
+            @commit, @createdOn, @updatedOn, COALESCE(@diffStatJson, '[]'), 1, @now)
     ON CONFLICT(key) DO UPDATE SET
       title = excluded.title, description = excluded.description, author = excluded.author, url = excluded.url,
       source_branch = excluded.source_branch, dest_branch = excluded.dest_branch, commit_hash = excluded.commit_hash,
-      updated_on = excluded.updated_on, diffstat_json = excluded.diffstat_json, is_open = 1, last_seen_at = excluded.last_seen_at
+      updated_on = excluded.updated_on, is_open = 1, last_seen_at = excluded.last_seen_at,
+      diffstat_json = CASE WHEN @diffStatJson IS NULL THEN prs.diffstat_json ELSE excluded.diffstat_json END
   `);
 
   const insertAnalysis = db.prepare(`
@@ -104,8 +105,12 @@ export function createSqliteStore(env: Env): ResultStore {
   `);
 
   return {
-    savePR(pr: PullRequest, diffStat: DiffStatEntry[]) {
-      upsertPR.run({ ...pr, diffStatJson: JSON.stringify(diffStat), now: new Date().toISOString() });
+    savePR(pr: PullRequest, diffStat?: DiffStatEntry[]) {
+      upsertPR.run({
+        ...pr,
+        diffStatJson: diffStat ? JSON.stringify(diffStat) : null,
+        now: new Date().toISOString(),
+      });
     },
 
     markClosedExcept(openKeys: string[]) {
@@ -142,18 +147,19 @@ export function createSqliteStore(env: Env): ResultStore {
       );
     },
 
-    listOpen(analyzer: string): ReviewEntry[] {
+    listOpen(analyzer?: string): ReviewEntry[] {
       const rows = db
         .prepare(
           `SELECT p.*, a.analyzer, a.model, a.attention, a.risk_level, a.risk_score, a.summary, a.impact_areas_json,
                   a.risk_factors_json, a.attention_reasons_json, a.review_focus_json, a.signals_json, a.diff_truncated,
                   a.input_tokens, a.output_tokens, a.created_at, a.commit_hash AS analyzed_commit
            FROM prs p
-           JOIN analyses a ON a.pr_key = p.key AND a.analyzer = @analyzer
-             AND a.created_at = (SELECT MAX(created_at) FROM analyses WHERE pr_key = p.key AND analyzer = @analyzer)
+           JOIN analyses a ON a.pr_key = p.key AND (@analyzer IS NULL OR a.analyzer = @analyzer)
+             AND a.created_at = (SELECT MAX(created_at) FROM analyses
+                                 WHERE pr_key = p.key AND (@analyzer IS NULL OR analyzer = @analyzer))
            WHERE p.is_open = 1`,
         )
-        .all({ analyzer }) as Row[];
+        .all({ analyzer: analyzer ?? null }) as Row[];
       return rows.map(toEntry);
     },
 

@@ -12,12 +12,13 @@ export interface ReviewEntry {
 
 /** Where results are kept so they can be read after the sync finishes */
 export interface ResultStore {
-  savePR(pr: PullRequest, diffStat: DiffStatEntry[]): void;
+  /** Upserts the PR and marks it open; without `diffStat` the stored one is kept */
+  savePR(pr: PullRequest, diffStat?: DiffStatEntry[]): void;
   /** Marks every PR not in `openKeys` as closed (kept for history) */
   markClosedExcept(openKeys: string[]): void;
   hasAnalysis(prKey: string, commit: string, analyzer: string): boolean;
   saveAnalysis(pr: PullRequest, analyzer: string, signals: Signals, analysis: Analysis): void;
-  /** Open PRs with their latest analysis by this analyzer */
-  listOpen(analyzer: string): ReviewEntry[];
+  /** Open PRs with their latest analysis (from `analyzer`, or from any analyzer) */
+  listOpen(analyzer?: string): ReviewEntry[];
   close(): void;
 }
