@@ -1,3 +1,4 @@
+import { mapLimit } from "../../core/concurrency.ts";
 import type { PRSource } from "../../core/source.ts";
 import { requireEnv, type DiffStatEntry, type Env, type PullRequest } from "../../core/types.ts";
 import { BitbucketClient, BitbucketError } from "./client.ts";
@@ -114,17 +115,4 @@ function toPullRequest(workspace: string, repo: string, raw: RawPullRequest): Pu
     createdOn: raw.created_on,
     updatedOn: raw.updated_on,
   };
-}
-
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
 }
