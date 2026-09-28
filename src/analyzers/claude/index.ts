@@ -15,8 +15,10 @@ export function createClaudeAnalyzer(env: Env): Analyzer {
     throw new Error(`Invalid CLAUDE_EFFORT "${effort}". Use one of: ${EFFORTS.join(", ")}`);
   }
 
-  // Resolves ANTHROPIC_API_KEY, or an `ant auth login` profile
-  const client = new Anthropic();
+  // Created on first use, so commands that never call Claude don't need credentials.
+  // Resolves ANTHROPIC_API_KEY, or an `ant auth login` profile.
+  let client: Anthropic | undefined;
+  const getClient = () => (client ??= new Anthropic());
 
   return {
     name: `claude:${model}`,
@@ -24,17 +26,21 @@ export function createClaudeAnalyzer(env: Env): Analyzer {
     async analyze(ctx) {
       const diff = prepareDiff(await ctx.getDiff());
 
-      const response = await client.beta.messages.parse({
-        model,
-        max_tokens: 16000,
-        thinking: { type: "adaptive" },
-        output_config: { effort, format: betaZodOutputFormat(AnalysisOutputSchema) },
-        // If a safety classifier declines, the API retries on a fallback model in the same call
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserMessage(ctx, diff) }],
-      });
+      const response = await getClient()
+        .beta.messages.parse({
+          model,
+          max_tokens: 16000,
+          thinking: { type: "adaptive" },
+          output_config: { effort, format: betaZodOutputFormat(AnalysisOutputSchema) },
+          // If a safety classifier declines, the API retries on a fallback model in the same call
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: buildUserMessage(ctx, diff) }],
+        })
+        .catch((err: unknown) => {
+          throw explainError(err);
+        });
 
       if (response.stop_reason === "refusal") {
         throw new Error(`Claude declined to analyze ${ctx.pr.key} (${response.stop_details?.category ?? "no category"})`);
@@ -53,4 +59,18 @@ export function createClaudeAnalyzer(env: Env): Analyzer {
       });
     },
   };
+}
+
+function explainError(err: unknown): unknown {
+  if (err instanceof Anthropic.AuthenticationError) {
+    return new Error("Claude rejected the credentials (401). Check ANTHROPIC_API_KEY.");
+  }
+  if (err instanceof Anthropic.PermissionDeniedError) {
+    return new Error(`Claude denied the request (403): ${err.message}`);
+  }
+  // Thrown by the SDK before any request when it finds no key or profile
+  if (err instanceof Error && !(err instanceof Anthropic.APIError) && /authentication method/i.test(err.message)) {
+    return new Error("No Claude credentials found. Set ANTHROPIC_API_KEY in .env, or run `ant auth login`.");
+  }
+  return err;
 }

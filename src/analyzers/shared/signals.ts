@@ -4,7 +4,7 @@ import type { DiffStatEntry, PullRequest, Signals } from "../../core/types.ts";
 export const CATEGORIES: { name: string; points: number; pattern: RegExp }[] = [
   { name: "migrations", points: 25, pattern: /(^|\/)(migrations?|migrate)\/|schema\.prisma$|\.sql$|(^|\/)db\/schema/i },
   { name: "auth", points: 25, pattern: /auth|security|permission|oauth|jwt|password|crypto|session/i },
-  { name: "payments", points: 25, pattern: /payment|billing|invoice|checkout|stripe|wallet/i },
+  { name: "payments", points: 25, pattern: /payment|billing|invoice|checkout|refund|stripe|wallet/i },
   {
     name: "infra",
     points: 15,
