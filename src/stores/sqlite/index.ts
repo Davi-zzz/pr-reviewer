@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { ResultStore, ReviewEntry } from "../../core/store.ts";
+import type { ResultStore, ReviewEntry, SyncRun } from "../../core/store.ts";
 import type { Analysis, DiffStatEntry, Env, PullRequest, Signals } from "../../core/types.ts";
 
 const SCHEMA = `
@@ -44,6 +44,17 @@ CREATE TABLE IF NOT EXISTS analyses (
   created_at             TEXT NOT NULL,
   PRIMARY KEY (pr_key, commit_hash, analyzer)
 );
+
+CREATE TABLE IF NOT EXISTS runs (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  trigger      TEXT NOT NULL,
+  analyzer     TEXT NOT NULL,
+  started_at   TEXT NOT NULL,
+  finished_at  TEXT NOT NULL,
+  status       TEXT NOT NULL,
+  error        TEXT,
+  result_json  TEXT
+);
 `;
 
 interface Row {
@@ -76,6 +87,16 @@ interface Row {
   output_tokens: number | null;
   created_at: string;
   analyzed_commit: string;
+}
+
+interface RunRow {
+  trigger: SyncRun["trigger"];
+  analyzer: string;
+  started_at: string;
+  finished_at: string;
+  status: SyncRun["status"];
+  error: string | null;
+  result_json: string | null;
 }
 
 export function createSqliteStore(env: Env): ResultStore {
@@ -161,6 +182,34 @@ export function createSqliteStore(env: Env): ResultStore {
         )
         .all({ analyzer: analyzer ?? null }) as Row[];
       return rows.map(toEntry);
+    },
+
+    saveRun(run: SyncRun) {
+      db.prepare(
+        `INSERT INTO runs (trigger, analyzer, started_at, finished_at, status, error, result_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        run.trigger,
+        run.analyzer,
+        run.startedAt,
+        run.finishedAt,
+        run.status,
+        run.error ?? null,
+        run.result ? JSON.stringify(run.result) : null,
+      );
+    },
+
+    listRuns(limit: number): SyncRun[] {
+      const rows = db.prepare("SELECT * FROM runs ORDER BY id DESC LIMIT ?").all(limit) as RunRow[];
+      return rows.map((r) => ({
+        trigger: r.trigger,
+        analyzer: r.analyzer,
+        startedAt: r.started_at,
+        finishedAt: r.finished_at,
+        status: r.status,
+        error: r.error ?? undefined,
+        result: r.result_json ? JSON.parse(r.result_json) : undefined,
+      }));
     },
 
     close() {

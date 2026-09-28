@@ -61,6 +61,16 @@ export interface Analysis {
   usage?: { inputTokens: number; outputTokens: number };
 }
 
+export interface SyncResult {
+  total: number;
+  analyzed: number;
+  cached: number;
+  skippedByLimit: number;
+  failed: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 /** Environment variables; each module reads its own settings from here */
 export type Env = Record<string, string | undefined>;
 

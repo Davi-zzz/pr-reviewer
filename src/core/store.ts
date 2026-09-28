@@ -1,4 +1,18 @@
-import type { Analysis, DiffStatEntry, PullRequest, Signals } from "./types.ts";
+import type { Analysis, DiffStatEntry, PullRequest, Signals, SyncResult } from "./types.ts";
+
+export type SyncTrigger = "cli" | "manual" | "schedule";
+
+/** One execution of sync, kept so a UI can show "last sync: 09:00 ✓" or why it failed */
+export interface SyncRun {
+  trigger: SyncTrigger;
+  analyzer: string;
+  startedAt: string;
+  finishedAt: string;
+  status: "ok" | "error";
+  /** Set when the run failed before finishing (e.g. Bitbucket unreachable) */
+  error?: string;
+  result?: SyncResult;
+}
 
 export interface ReviewEntry {
   pr: PullRequest;
@@ -20,5 +34,8 @@ export interface ResultStore {
   saveAnalysis(pr: PullRequest, analyzer: string, signals: Signals, analysis: Analysis): void;
   /** Open PRs with their latest analysis (from `analyzer`, or from any analyzer) */
   listOpen(analyzer?: string): ReviewEntry[];
+  saveRun(run: SyncRun): void;
+  /** Most recent first */
+  listRuns(limit: number): SyncRun[];
   close(): void;
 }

@@ -2,29 +2,40 @@ import { computeSignals } from "./analyzers/shared/signals.ts";
 import type { Analyzer } from "./core/analyzer.ts";
 import { mapLimit } from "./core/concurrency.ts";
 import type { PRSource } from "./core/source.ts";
-import type { ResultStore } from "./core/store.ts";
+import type { ResultStore, SyncTrigger } from "./core/store.ts";
+import type { SyncResult } from "./core/types.ts";
 
 export interface SyncOptions {
   /** Max PRs to analyze this run (cached ones don't count) */
   limit?: number;
   concurrency?: number;
+  trigger?: SyncTrigger;
 }
 
-export interface SyncResult {
-  total: number;
-  analyzed: number;
-  cached: number;
-  skippedByLimit: number;
-  failed: number;
-  inputTokens: number;
-  outputTokens: number;
-}
-
+/** Runs a sync and records it (success or failure) in the store's run history */
 export async function sync(
   source: PRSource,
   analyzer: Analyzer,
   store: ResultStore,
-  { limit = Infinity, concurrency = 3 }: SyncOptions = {},
+  { trigger = "cli", ...options }: SyncOptions = {},
+): Promise<SyncResult> {
+  const startedAt = new Date().toISOString();
+  const base = { trigger, analyzer: analyzer.name, startedAt };
+  try {
+    const result = await syncPRs(source, analyzer, store, options);
+    store.saveRun({ ...base, finishedAt: new Date().toISOString(), status: "ok", result });
+    return result;
+  } catch (err) {
+    store.saveRun({ ...base, finishedAt: new Date().toISOString(), status: "error", error: (err as Error).message });
+    throw err;
+  }
+}
+
+async function syncPRs(
+  source: PRSource,
+  analyzer: Analyzer,
+  store: ResultStore,
+  { limit = Infinity, concurrency = 3 }: Omit<SyncOptions, "trigger">,
 ): Promise<SyncResult> {
   console.log(`Fetching open PRs where you are a reviewer (${source.name})...`);
   const prs = await source.listReviewing();
