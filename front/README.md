@@ -1,20 +1,10 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# reviewer front
 
-# Run and deploy your AI Studio app
+Dashboard for the PRs analyzed by the reviewer API (design exported from Google AI Studio).
 
-This contains everything you need to run your app locally.
+```sh
+npx pnpm@10.34.5 install
+npx pnpm@10.34.5 dev      # http://localhost:5173, proxies /api to http://127.0.0.1:3000
+```
 
-View your app in AI Studio: https://ai.studio/apps/b31908dd-6868-4bfc-91d5-7bdc317b5f93
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Start the API first (`pnpm server` in the parent folder), or run everything with `docker compose up` there.

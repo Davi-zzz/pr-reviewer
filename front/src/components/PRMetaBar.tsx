@@ -48,12 +48,12 @@ export const PRMetaBar: React.FC<PRMetaBarProps> = ({ pr }) => {
         {/* Right action button */}
         <div className="flex items-center gap-2">
           <a
-            href={pr.githubUrl}
+            href={pr.prUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="h-8 px-3.5 border border-[#31353c] bg-[#1c2026] hover:bg-[#262a31] rounded text-[#dfe2eb] text-xs flex items-center gap-1.5 transition-colors"
           >
-            <span>Open Original PR #{pr.prNumber} on GitHub</span>
+            <span>Open Original PR #{pr.prNumber} on Bitbucket</span>
             <ExternalLink className="w-3.5 h-3.5 text-[#968d9e]" />
           </a>
         </div>

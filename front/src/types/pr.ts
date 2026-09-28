@@ -66,7 +66,7 @@ export interface PRReport {
   filesChangedCount: number;
   additions: number;
   deletions: number;
-  githubUrl: string;
+  prUrl: string;
   tags: string[];
   summary: {
     whatChanged: string;
@@ -80,11 +80,4 @@ export interface PRReport {
     services: AffectedService[];
     touchedTables: string[];
   };
-}
-
-export interface ApiConfig {
-  endpoint: string;
-  authToken: string;
-  autoRefresh: boolean;
-  refreshIntervalSeconds: number;
 }

@@ -1,0 +1,1 @@
+# Makes front/ its own pnpm root, independent of the API package in the parent folder

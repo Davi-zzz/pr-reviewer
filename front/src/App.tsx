@@ -1,82 +1,27 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import { samplePRs } from './data/mockData';
 import { PRReport, ChangedFileRisk } from './types/pr';
-import {
-  ApiSettings,
-  loadApiSettings,
-  saveApiSettings,
-  fetchPRAnalysisFromApi
-} from './services/apiService';
 import { Header } from './components/Header';
 import { PRMetaBar } from './components/PRMetaBar';
 import { AISummaryCards } from './components/AISummaryCards';
 import { HighestRiskZone } from './components/HighestRiskZone';
 import { ChangedFilesTable } from './components/ChangedFilesTable';
 import { AffectedContextPanel } from './components/AffectedContextPanel';
-import { ApiConfigModal } from './components/ApiConfigModal';
 import { FileDiffModal } from './components/FileDiffModal';
 
 export default function App() {
   const [currentPR, setCurrentPR] = useState<PRReport>(samplePRs[0]);
-  const [apiSettings, setApiSettings] = useState<ApiSettings>(loadApiSettings);
-  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<ChangedFileRisk | null>(null);
-  const [isLoadingApi, setIsLoadingApi] = useState(false);
 
   // Sync document title with current PR
   useEffect(() => {
     document.title = `PR #${currentPR.prNumber} Impact & Risk Intelligence | ${currentPR.repo}`;
   }, [currentPR]);
 
-  // Handle saving API settings
-  const handleSaveApiSettings = (newSettings: ApiSettings) => {
-    setApiSettings(newSettings);
-    saveApiSettings(newSettings);
-  };
-
-  // Test connection to user's custom API
-  const handleTestApiConnection = async (settings: ApiSettings) => {
-    return await fetchPRAnalysisFromApi(settings, currentPR.prNumber, currentPR.repo);
-  };
-
-  // Refresh data from API if configured
-  const handleRefreshFromApi = async () => {
-    if (!apiSettings.endpoint.trim()) {
-      setIsApiModalOpen(true);
-      return;
-    }
-
-    setIsLoadingApi(true);
-    const result = await fetchPRAnalysisFromApi(
-      apiSettings,
-      currentPR.prNumber,
-      currentPR.repo
-    );
-    setIsLoadingApi(false);
-
-    if (result.success && result.data) {
-      setCurrentPR(result.data);
-    } else {
-      alert(result.error || 'Não foi possível carregar os dados da API.');
-    }
-  };
-
   return (
     <div className="bg-[#10141a] text-[#dfe2eb] font-sans antialiased min-h-screen flex flex-col selection:bg-[#a875fc] selection:text-[#39007a]">
       {/* Minimal Top Bar */}
-      <Header
-        currentPR={currentPR}
-        onSelectPR={(pr) => setCurrentPR(pr)}
-        onOpenApiSettings={() => setIsApiModalOpen(true)}
-        isLiveApiActive={apiSettings.isLiveApiActive}
-        onRefreshApi={handleRefreshFromApi}
-        isLoading={isLoadingApi}
-      />
+      <Header currentPR={currentPR} onSelectPR={(pr) => setCurrentPR(pr)} />
 
       {/* PR Meta Bar */}
       <PRMetaBar pr={currentPR} />
@@ -107,24 +52,9 @@ export default function App() {
           <AffectedContextPanel
             services={currentPR.affectedContext.services}
             tables={currentPR.affectedContext.touchedTables}
-            prNumber={currentPR.prNumber}
           />
         </div>
       </main>
-
-      {/* API Configuration & Testing Modal */}
-      <ApiConfigModal
-        isOpen={isApiModalOpen}
-        onClose={() => setIsApiModalOpen(false)}
-        settings={apiSettings}
-        onSaveSettings={handleSaveApiSettings}
-        currentPR={currentPR}
-        onLoadCustomPR={(customPR) => {
-          setCurrentPR(customPR);
-          setApiSettings((prev) => ({ ...prev, isLiveApiActive: true }));
-        }}
-        onTestConnection={handleTestApiConnection}
-      />
 
       {/* File Diff / Risk Detail Modal */}
       <FileDiffModal

@@ -1,27 +1,16 @@
 import React from 'react';
-import {
-  Share2,
-  Database,
-  TableProperties,
-  ShieldCheck,
-  FileCheck2,
-  CheckCircle,
-  AlertTriangle
-} from 'lucide-react';
+import { Share2, TableProperties } from 'lucide-react';
 import { AffectedService } from '../types/pr';
 
 interface AffectedContextPanelProps {
   services: AffectedService[];
   tables: string[];
-  prNumber: number;
 }
 
 export const AffectedContextPanel: React.FC<AffectedContextPanelProps> = ({
   services,
-  tables,
-  prNumber
+  tables
 }) => {
-  const [auditApproved, setAuditApproved] = React.useState(false);
 
   const getImpactBadge = (impact: AffectedService['impact']) => {
     switch (impact) {
@@ -133,42 +122,6 @@ export const AffectedContextPanel: React.FC<AffectedContextPanelProps> = ({
               </span>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Reviewer Action / Audit Box */}
-      <div className="bg-[#181c22] border border-[#31353c] rounded-lg p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="w-4 h-4 text-[#d5bbff]" />
-          <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#dfe2eb]">
-            PR Audit & Governance
-          </h4>
-        </div>
-        <p className="text-xs text-[#ccc3d5] mb-4 leading-relaxed">
-          Verificação automatizada concluiu análise de blast radius para o PR #{prNumber}.
-        </p>
-
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => setAuditApproved(!auditApproved)}
-            className={`w-full py-2 px-3 rounded text-xs font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              auditApproved
-                ? 'bg-[#27a640]/20 border border-[#27a640] text-[#67df70]'
-                : 'bg-[#1c2026] hover:bg-[#262a31] border border-[#31353c] text-[#dfe2eb]'
-            }`}
-          >
-            {auditApproved ? (
-              <>
-                <CheckCircle className="w-4 h-4 text-[#67df70]" />
-                <span>Auditoria Aprovada com Ressalvas</span>
-              </>
-            ) : (
-              <>
-                <FileCheck2 className="w-4 h-4 text-[#d5bbff]" />
-                <span>Validar & Assinar Auditoria</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     </div>
