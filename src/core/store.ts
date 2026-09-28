@@ -18,6 +18,8 @@ export interface ReviewEntry {
   pr: PullRequest;
   analyzer: string;
   analysis: Analysis;
+  /** Every changed file with +/- counts (the analysis may rate only some of them) */
+  diffStat: DiffStatEntry[];
   signals: Signals;
   analyzedAt: string;
   /** The PR got new commits after this analysis (e.g. the re-analysis failed) */

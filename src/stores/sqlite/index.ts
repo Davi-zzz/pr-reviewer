@@ -87,6 +87,22 @@ interface Row {
   output_tokens: number | null;
   created_at: string;
   analyzed_commit: string;
+  diffstat_json: string;
+  files_json: string | null;
+  highest_risk_json: string | null;
+}
+
+/** Columns added after the first release; created on open so existing databases keep working */
+const ADDED_COLUMNS: { table: string; column: string; type: string }[] = [
+  { table: "analyses", column: "files_json", type: "TEXT" },
+  { table: "analyses", column: "highest_risk_json", type: "TEXT" },
+];
+
+function migrate(db: Database.Database) {
+  for (const { table, column, type } of ADDED_COLUMNS) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!columns.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }
 
 interface RunRow {
@@ -105,6 +121,7 @@ export function createSqliteStore(env: Env): ResultStore {
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+  migrate(db);
 
   const upsertPR = db.prepare(`
     INSERT INTO prs (key, workspace, repo, pr_id, title, description, author, url, source_branch, dest_branch,
@@ -121,8 +138,8 @@ export function createSqliteStore(env: Env): ResultStore {
   const insertAnalysis = db.prepare(`
     INSERT OR REPLACE INTO analyses (pr_key, commit_hash, analyzer, model, attention, risk_level, risk_score, summary,
       impact_areas_json, risk_factors_json, attention_reasons_json, review_focus_json, signals_json, diff_truncated,
-      input_tokens, output_tokens, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      input_tokens, output_tokens, created_at, files_json, highest_risk_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   return {
@@ -165,6 +182,8 @@ export function createSqliteStore(env: Env): ResultStore {
         a.usage?.inputTokens ?? null,
         a.usage?.outputTokens ?? null,
         new Date().toISOString(),
+        JSON.stringify(a.files),
+        a.highestRisk ? JSON.stringify(a.highestRisk) : null,
       );
     },
 
@@ -173,7 +192,8 @@ export function createSqliteStore(env: Env): ResultStore {
         .prepare(
           `SELECT p.*, a.analyzer, a.model, a.attention, a.risk_level, a.risk_score, a.summary, a.impact_areas_json,
                   a.risk_factors_json, a.attention_reasons_json, a.review_focus_json, a.signals_json, a.diff_truncated,
-                  a.input_tokens, a.output_tokens, a.created_at, a.commit_hash AS analyzed_commit
+                  a.input_tokens, a.output_tokens, a.created_at, a.files_json, a.highest_risk_json,
+                  a.commit_hash AS analyzed_commit
            FROM prs p
            JOIN analyses a ON a.pr_key = p.key AND (@analyzer IS NULL OR a.analyzer = @analyzer)
              AND a.created_at = (SELECT MAX(created_at) FROM analyses
@@ -243,11 +263,15 @@ function toEntry(row: Row): ReviewEntry {
       attention: row.attention,
       attentionReasons: JSON.parse(row.attention_reasons_json),
       reviewFocus: JSON.parse(row.review_focus_json),
+      // Analyses saved before these fields existed have them as NULL
+      files: row.files_json ? JSON.parse(row.files_json) : [],
+      highestRisk: row.highest_risk_json ? JSON.parse(row.highest_risk_json) : null,
       model: row.model ?? undefined,
       diffTruncated: row.diff_truncated === 1,
       usage:
         row.input_tokens != null ? { inputTokens: row.input_tokens, outputTokens: row.output_tokens ?? 0 } : undefined,
     },
+    diffStat: JSON.parse(row.diffstat_json),
     signals: JSON.parse(row.signals_json),
     analyzedAt: row.created_at,
     stale: row.analyzed_commit !== row.commit_hash,

@@ -3,7 +3,13 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { Analyzer } from "../../core/analyzer.ts";
 import type { Env } from "../../core/types.ts";
 import { prepareDiff } from "../shared/diff.ts";
-import { AnalysisOutputSchema, SYSTEM_PROMPT, buildUserMessage, toAnalysis } from "../shared/prompt.ts";
+import {
+  ANALYSIS_VERSION,
+  AnalysisOutputSchema,
+  SYSTEM_PROMPT,
+  buildUserMessage,
+  toAnalysis,
+} from "../shared/prompt.ts";
 
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
 type Effort = (typeof EFFORTS)[number];
@@ -21,7 +27,7 @@ export function createClaudeAnalyzer(env: Env): Analyzer {
   const getClient = () => (client ??= new Anthropic());
 
   return {
-    name: `claude:${model}`,
+    name: `claude:${model}:v${ANALYSIS_VERSION}`,
 
     async analyze(ctx) {
       const diff = prepareDiff(await ctx.getDiff());
@@ -54,7 +60,7 @@ export function createClaudeAnalyzer(env: Env): Analyzer {
 
       return toAnalysis(response.parsed_output, {
         model: response.model,
-        diffTruncated: diff.truncated,
+        diff,
         usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens },
       });
     },
