@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import {
-  FolderOpen,
-  AlertCircle,
-  AlertTriangle,
-  Cloud,
-  CheckCircle2,
-  FileCode,
-  Search
-} from 'lucide-react';
+import { FolderOpen, AlertCircle, AlertTriangle, Cloud, CheckCircle2, FileCode, Search } from 'lucide-react';
 import { ChangedFileRisk, RiskLevel } from '../types/pr';
+import { RISK_BADGE } from '../lib/format';
 
 interface ChangedFilesTableProps {
   files: ChangedFileRisk[];
@@ -16,20 +9,30 @@ interface ChangedFilesTableProps {
   selectedFileId?: string;
 }
 
-export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({
-  files,
-  onSelectFile,
-  selectedFileId
-}) => {
+const FILTERS: (RiskLevel | 'ALL')[] = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+
+export const RiskBadge: React.FC<{ level: RiskLevel | null; score: number | null }> = ({ level, score }) =>
+  level ? (
+    <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-semibold border ${RISK_BADGE[level]}`}>
+      {level} ({score}/10)
+    </span>
+  ) : (
+    <span
+      className="font-mono text-[10px] px-2 py-0.5 rounded border border-[#31353c] text-[#968d9e]"
+      title="Não avaliado (lockfile, gerado ou fora do diff enviado)"
+    >
+      N/A
+    </span>
+  );
+
+export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({ files, onSelectFile, selectedFileId }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterLevel, setFilterLevel] = useState<string>('ALL');
+  const [filterLevel, setFilterLevel] = useState<RiskLevel | 'ALL'>('ALL');
 
   const filteredFiles = files.filter((f) => {
-    const matchesSearch =
-      f.file.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLevel =
-      filterLevel === 'ALL' || f.riskLevel === filterLevel;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = f.file.toLowerCase().includes(q) || f.description.toLowerCase().includes(q);
+    const matchesLevel = filterLevel === 'ALL' || f.riskLevel === filterLevel;
     return matchesSearch && matchesLevel;
   });
 
@@ -49,49 +52,15 @@ export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({
     return <FileCode className="w-4 h-4 text-[#ccc3d5]" />;
   };
 
-  const getRiskBadge = (level: RiskLevel, score: number) => {
-    switch (level) {
-      case 'CRITICAL':
-        return (
-          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#93000a] text-[#ffdad6] font-semibold border border-[#ffb4ab]/80">
-            CRITICAL ({score})
-          </span>
-        );
-      case 'HIGH':
-        return (
-          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#93000a]/60 text-[#ffb4ab] font-semibold border border-[#ffb4ab]/50">
-            HIGH ({score})
-          </span>
-        );
-      case 'MEDIUM':
-        return (
-          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#31353c] text-[#a2c9ff] font-semibold border border-[#a2c9ff]/40">
-            MEDIUM ({score})
-          </span>
-        );
-      case 'LOW':
-      default:
-        return (
-          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#27a640]/15 text-[#67df70] font-semibold border border-[#27a640]/40">
-            LOW ({score})
-          </span>
-        );
-    }
-  };
-
   return (
     <div className="bg-[#181c22] border border-[#31353c] rounded-lg p-5">
       {/* Table Header */}
       <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-2">
           <FolderOpen className="w-4 h-4 text-[#dfe2eb]" />
-          <h3 className="text-base text-[#dfe2eb] font-semibold">
-            Changed Files Risk Breakdown
-          </h3>
+          <h3 className="text-base text-[#dfe2eb] font-semibold">Changed Files Risk Breakdown</h3>
         </div>
-        <span className="text-xs text-[#968d9e] font-sans">
-          {files.length} files categorized by runtime hazard score
-        </span>
+        <span className="text-xs text-[#968d9e] font-sans">{files.length} arquivos, mais arriscados primeiro</span>
       </div>
 
       {/* Search and Filters toolbar */}
@@ -109,14 +78,12 @@ export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({
 
         {/* Filter pills */}
         <div className="flex items-center gap-1 font-mono text-[11px] bg-[#0a0e14] p-0.5 rounded border border-[#31353c]">
-          {['ALL', 'CRITICAL', 'MEDIUM', 'LOW'].map((lvl) => (
+          {FILTERS.map((lvl) => (
             <button
               key={lvl}
               onClick={() => setFilterLevel(lvl)}
               className={`px-2 py-1 rounded transition-colors cursor-pointer ${
-                filterLevel === lvl
-                  ? 'bg-[#262a31] text-[#dfe2eb] font-medium'
-                  : 'text-[#968d9e] hover:text-[#dfe2eb]'
+                filterLevel === lvl ? 'bg-[#262a31] text-[#dfe2eb] font-medium' : 'text-[#968d9e] hover:text-[#dfe2eb]'
               }`}
             >
               {lvl}
@@ -146,12 +113,8 @@ export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                   <div className="shrink-0">{getFileIcon(file)}</div>
                   <div className="min-w-0">
-                    <span className="font-mono text-xs text-[#dfe2eb] font-medium truncate block">
-                      {file.file}
-                    </span>
-                    <span className="text-[11px] text-[#968d9e] truncate block">
-                      {file.description}
-                    </span>
+                    <span className="font-mono text-xs text-[#dfe2eb] font-medium truncate block">{file.file}</span>
+                    <span className="text-[11px] text-[#968d9e] truncate block">{file.description}</span>
                   </div>
                 </div>
 
@@ -160,7 +123,7 @@ export const ChangedFilesTable: React.FC<ChangedFilesTableProps> = ({
                     <span className="text-[#67df70]">+{file.additions}</span>
                     <span className="text-[#ffb4ab]">-{file.deletions}</span>
                   </div>
-                  <div>{getRiskBadge(file.riskLevel, file.riskScore)}</div>
+                  <RiskBadge level={file.riskLevel} score={file.riskScore} />
                 </div>
               </div>
             );

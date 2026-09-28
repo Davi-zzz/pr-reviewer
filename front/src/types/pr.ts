@@ -1,26 +1,20 @@
 /**
- * Types for PR Sentinel / PR Risk Intelligence
- * Designed for seamless REST API integration
+ * View model of the dashboard, built from the API's ReviewEntry by services/adapter.ts
  */
 
 export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type AttentionLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface DiffLine {
-  type: 'deletion' | 'addition' | 'annotation' | 'context';
+  type: 'deletion' | 'addition' | 'context';
   oldLineNumber?: number;
   newLineNumber?: number;
   content: string;
-  annotation?: {
-    title: string;
-    confidence: string;
-    description: string;
-  };
 }
 
 export interface HighestRiskBlock {
   file: string;
   lineRange: string;
-  riskWeight: number; // 0-100
   hazardType: string;
   hazardDescription: string;
   additions: number;
@@ -28,7 +22,6 @@ export interface HighestRiskBlock {
   diffLines: DiffLine[];
   suggestedFix: {
     title: string;
-    description?: string;
     code: string;
   };
 }
@@ -36,18 +29,13 @@ export interface HighestRiskBlock {
 export interface ChangedFileRisk {
   id: string;
   file: string;
+  status: string;
   description: string;
   additions: number;
   deletions: number;
-  riskScore: number; // 0-100
-  riskLevel: RiskLevel;
-  diffSnippet?: DiffLine[];
-}
-
-export interface AffectedService {
-  name: string;
-  description: string;
-  impact: 'Critical' | 'High' | 'Medium' | 'Low';
+  /** 1-10, null when the analysis didn't rate this file */
+  riskScore: number | null;
+  riskLevel: RiskLevel | null;
 }
 
 export interface PRReport {
@@ -55,29 +43,29 @@ export interface PRReport {
   prNumber: number;
   repo: string;
   title: string;
-  status: 'open' | 'merged' | 'closed';
-  semver: 'MAJOR' | 'MINOR' | 'PATCH';
-  openedAt: string;
   author: string;
-  authorAvatar?: string;
+  openedAt: string;
   baseBranch: string;
   headBranch: string;
-  commitsCount: number;
   filesChangedCount: number;
   additions: number;
   deletions: number;
   prUrl: string;
   tags: string[];
+  attention: AttentionLevel;
+  risk: { level: RiskLevel; score: number };
+  stale: boolean;
+  diffTruncated: boolean;
+  analyzer: string;
+  analyzedAt: string;
   summary: {
     whatChanged: string;
     whyItChanged: string;
-    architecturalTradeoffs: string;
-    rollbackStrategy: string;
+    riskFactors: string[];
+    reviewFocus: string[];
   };
-  highestRisk: HighestRiskBlock;
+  highestRisk: HighestRiskBlock | null;
   changedFiles: ChangedFileRisk[];
-  affectedContext: {
-    services: AffectedService[];
-    touchedTables: string[];
-  };
+  impactAreas: string[];
+  attentionReasons: string[];
 }

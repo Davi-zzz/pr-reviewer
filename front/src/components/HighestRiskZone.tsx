@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  AlertTriangle,
-  AlertOctagon,
-  Wand2,
-  Copy,
-  Check,
-  ShieldAlert,
-  Code2
-} from 'lucide-react';
+import { AlertTriangle, AlertOctagon, Wand2, Copy, Check, Code2 } from 'lucide-react';
 import { HighestRiskBlock } from '../types/pr';
 
 interface HighestRiskZoneProps {
@@ -39,9 +31,6 @@ export const HighestRiskZone: React.FC<HighestRiskZoneProps> = ({ highestRisk })
             {highestRisk.file}:{highestRisk.lineRange}
           </span>
         </div>
-        <span className="font-mono text-xs bg-[#ffb4ab] text-[#10141a] font-bold px-2 py-0.5 rounded">
-          Risk Weight: {highestRisk.riskWeight}/100
-        </span>
       </div>
 
       {/* Issue Diagnosis */}
@@ -77,7 +66,7 @@ export const HighestRiskZone: React.FC<HighestRiskZoneProps> = ({ highestRisk })
                 : 'text-[#ccc3d5] hover:text-[#dfe2eb]'
             }`}
           >
-            Live Code Diff
+            Code Diff
           </button>
           <button
             onClick={() => setActiveTab('fix')}
@@ -95,32 +84,15 @@ export const HighestRiskZone: React.FC<HighestRiskZoneProps> = ({ highestRisk })
 
       {/* Live Diff View */}
       {activeTab === 'diff' && (
+        // One horizontal scroll for the whole block; rows are as wide as the longest line
         <div className="font-mono text-xs leading-5 overflow-x-auto custom-scrollbar bg-[#0a0e14]">
+          <div className="min-w-full w-max">
+          {highestRisk.diffLines.length === 0 && (
+            <p className="p-4 font-sans text-[#968d9e]">
+              Não foi possível localizar essas linhas no diff; veja o arquivo no Bitbucket.
+            </p>
+          )}
           {highestRisk.diffLines.map((line, index) => {
-            if (line.type === 'annotation' && line.annotation) {
-              return (
-                <div
-                  key={index}
-                  className="bg-[#181c22] border-y border-[#ffb4ab]/40 p-3 my-0.5 flex items-start gap-3 pl-8 text-xs"
-                >
-                  <ShieldAlert className="w-4 h-4 text-[#ffb4ab] shrink-0 mt-0.5" />
-                  <div className="flex-1 font-sans">
-                    <div className="flex items-center gap-2">
-                      <strong className="text-[#ffb4ab] font-medium">
-                        {line.annotation.title}
-                      </strong>
-                      <span className="font-mono text-[10px] text-[#968d9e]">
-                        Confidence: {line.annotation.confidence}
-                      </span>
-                    </div>
-                    <p className="text-[#dfe2eb] mt-0.5 leading-relaxed">
-                      {line.annotation.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            }
-
             const isDeletion = line.type === 'deletion';
             const isAddition = line.type === 'addition';
 
@@ -151,12 +123,13 @@ export const HighestRiskZone: React.FC<HighestRiskZoneProps> = ({ highestRisk })
                 </div>
 
                 {/* Content */}
-                <div className="px-3 py-0.5 flex-1 whitespace-pre overflow-x-auto">
+                <div className="px-3 py-0.5 flex-1 whitespace-pre">
                   {line.content}
                 </div>
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

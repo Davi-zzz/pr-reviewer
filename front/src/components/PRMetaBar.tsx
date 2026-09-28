@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import {
-  CheckCircle2,
-  ExternalLink,
-  Clock,
-  GitFork,
-  GitCommit,
-  FileCode2,
-  Copy,
-  Check
-} from 'lucide-react';
+import { AlertTriangle, Clock, GitFork, FileCode2, Copy, Check, Bot } from 'lucide-react';
 import { PRReport } from '../types/pr';
+import { ATTENTION_BADGE, RISK_BADGE, formatDateTime, timeAgo } from '../lib/format';
 
 interface PRMetaBarProps {
   pr: PRReport;
@@ -28,45 +20,42 @@ export const PRMetaBar: React.FC<PRMetaBarProps> = ({ pr }) => {
 
   return (
     <section className="border-b border-[#31353c] bg-[#181c22] px-4 md:px-6 py-3.5">
-      <div className="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-4">
-        {/* Top row: Status, Title, SemVer */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="bg-[#27a640]/20 text-[#67df70] font-mono text-[11px] px-2.5 py-0.5 rounded font-bold flex items-center gap-1.5 border border-[#27a640]">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#67df70]" />
-            #{pr.prNumber} - {pr.status.toUpperCase()}
-          </span>
+      <div className="max-w-[1400px] mx-auto flex flex-wrap items-center gap-3">
+        {/* Attention + risk verdict */}
+        <span className={`font-mono text-[11px] px-2.5 py-0.5 rounded font-bold border ${ATTENTION_BADGE[pr.attention]}`}>
+          ATENÇÃO {pr.attention}
+        </span>
+        <span className={`font-mono text-[11px] px-2.5 py-0.5 rounded font-bold border ${RISK_BADGE[pr.risk.level]}`}>
+          RISCO {pr.risk.level} {pr.risk.score}/10
+        </span>
 
-          <h1 className="text-xl md:text-2xl text-[#dfe2eb] font-semibold tracking-tight">
-            {pr.title}
-          </h1>
-
-          <span className="bg-[#1c2026] text-[#ccc3d5] text-[10px] font-mono px-2 py-0.5 rounded border border-[#31353c]">
-            SemVer: {pr.semver}
-          </span>
-        </div>
-
-        {/* Right action button */}
-        <div className="flex items-center gap-2">
-          <a
-            href={pr.prUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-8 px-3.5 border border-[#31353c] bg-[#1c2026] hover:bg-[#262a31] rounded text-[#dfe2eb] text-xs flex items-center gap-1.5 transition-colors"
-          >
-            <span>Open Original PR #{pr.prNumber} on Bitbucket</span>
-            <ExternalLink className="w-3.5 h-3.5 text-[#968d9e]" />
-          </a>
-        </div>
+        <h1 className="text-xl md:text-2xl text-[#dfe2eb] font-semibold tracking-tight">{pr.title}</h1>
       </div>
 
+      {(pr.stale || pr.diffTruncated) && (
+        <div className="max-w-[1400px] mx-auto mt-2 flex flex-wrap gap-3 text-xs text-[#ffb4ab]">
+          {pr.stale && (
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Novos commits desde esta análise; ela será refeita no próximo sync.
+            </span>
+          )}
+          {pr.diffTruncated && (
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Diff grande: a análise viu só parte dos arquivos.
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Metadata Details Strip */}
-      <div className="max-w-[1720px] mx-auto mt-2 flex flex-wrap items-center justify-between gap-y-2 gap-x-6 text-xs text-[#ccc3d5]">
+      <div className="max-w-[1400px] mx-auto mt-2 flex flex-wrap items-center justify-between gap-y-2 gap-x-6 text-xs text-[#ccc3d5]">
         <div className="flex items-center gap-4 md:gap-6 flex-wrap">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title={formatDateTime(pr.openedAt)}>
             <Clock className="w-3.5 h-3.5 text-[#968d9e]" />
             <span>
-              Opened {pr.openedAt} by{' '}
-              <strong className="text-[#dfe2eb] font-medium">@{pr.author}</strong>
+              Aberta {timeAgo(pr.openedAt)} por <strong className="text-[#dfe2eb] font-medium">{pr.author}</strong>
             </span>
           </div>
 
@@ -83,15 +72,18 @@ export const PRMetaBar: React.FC<PRMetaBarProps> = ({ pr }) => {
 
           <div className="flex items-center gap-3 font-mono text-xs">
             <span className="flex items-center gap-1">
-              <GitCommit className="w-3.5 h-3.5 text-[#968d9e]" />
-              {pr.commitsCount} commits
-            </span>
-            <span className="flex items-center gap-1">
               <FileCode2 className="w-3.5 h-3.5 text-[#968d9e]" />
-              {pr.filesChangedCount} files changed
+              {pr.filesChangedCount} arquivos
             </span>
             <span className="text-[#67df70] font-medium">+{pr.additions}</span>
             <span className="text-[#ffb4ab] font-medium">-{pr.deletions}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[#968d9e]">
+            <Bot className="w-3.5 h-3.5" />
+            <span>
+              {pr.analyzer} · {formatDateTime(pr.analyzedAt)}
+            </span>
           </div>
         </div>
 
