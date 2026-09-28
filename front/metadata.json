@@ -1,0 +1,7 @@
+{
+  "name": "PR Risk Sentinel - Análise de PRs",
+  "description": "Painel de análise de risco e impacto arquitetural de Pull Requests com interface limpa e pronta para integrar com sua API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
