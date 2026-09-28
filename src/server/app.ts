@@ -1,13 +1,14 @@
 import Fastify from "fastify";
 import type { ResultStore } from "../core/store.ts";
 import { InvalidFilterError, rankEntries } from "../query.ts";
+import type { ScheduleInfo } from "./scheduler.ts";
 import type { SyncRunner } from "./sync-runner.ts";
 
 export interface AppDeps {
   store: ResultStore;
   runner: SyncRunner;
-  /** Cron expression of the automatic sync, if enabled */
-  schedule?: string;
+  /** The automatic sync, if enabled */
+  schedule?: ScheduleInfo;
 }
 
 export function buildApp({ store, runner, schedule }: AppDeps) {
@@ -37,7 +38,7 @@ export function buildApp({ store, runner, schedule }: AppDeps) {
 
   app.get("/api/status", async () => ({
     running: runner.running,
-    schedule: schedule ?? null,
+    schedule: schedule ? { cron: schedule.cron, timezone: schedule.timezone, nextRun: schedule.nextRun() } : null,
     lastRuns: store.listRuns(10),
   }));
 
