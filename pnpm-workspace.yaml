@@ -1,0 +1,4 @@
+# Makes reviewer/ its own pnpm root, so it doesn't join the parent workspace
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true

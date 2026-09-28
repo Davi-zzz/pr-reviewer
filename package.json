@@ -1,0 +1,26 @@
+{
+  "name": "reviewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Summarizes open Bitbucket Cloud PRs where you are a reviewer and rates how much attention each needs",
+  "type": "module",
+  "scripts": {
+    "sync": "tsx src/cli.ts sync",
+    "list": "tsx src/cli.ts list",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "better-sqlite3": "12.9.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
