@@ -2,7 +2,8 @@ import { parseArgs } from "node:util";
 import { createAnalyzer } from "./analyzers/index.ts";
 import { loadConfig } from "./config.ts";
 import type { ReviewEntry } from "./core/store.ts";
-import { ATTENTION_LEVELS, RISK_LEVELS, type AttentionLevel, type RiskLevel } from "./core/types.ts";
+import type { AttentionLevel } from "./core/types.ts";
+import { rankEntries } from "./query.ts";
 import { runSmoke } from "./smoke.ts";
 import { createSource } from "./sources/index.ts";
 import { createStore } from "./stores/index.ts";
@@ -50,19 +51,9 @@ async function main() {
     }
 
     case "list": {
-      const minAttention = parseLevel(values.level, ATTENTION_LEVELS, "--level");
-      const minRisk = parseLevel(values.risk, RISK_LEVELS, "--risk");
       const store = createStore(config.store, config.env);
       try {
-        const entries = store
-          .listOpen()
-          .filter((e) => ATTENTION_LEVELS.indexOf(e.analysis.attention) >= minAttention)
-          .filter((e) => RISK_LEVELS.indexOf(e.analysis.risk.level) >= minRisk)
-          .sort(
-            (a, b) =>
-              ATTENTION_LEVELS.indexOf(b.analysis.attention) - ATTENTION_LEVELS.indexOf(a.analysis.attention) ||
-              b.analysis.risk.score - a.analysis.risk.score,
-          );
+        const entries = rankEntries(store.listOpen(), { level: values.level, risk: values.risk });
         if (entries.length === 0) console.log("No analyzed open PRs. Run `pnpm sync` first.");
         entries.forEach(printEntry);
       } finally {
@@ -82,13 +73,6 @@ async function main() {
       console.log(USAGE);
       if (command) process.exitCode = 1;
   }
-}
-
-function parseLevel(value: string | undefined, levels: readonly string[], flag: string): number {
-  if (!value) return 0;
-  const index = levels.indexOf(value);
-  if (index < 0) throw new Error(`${flag} must be one of: ${levels.join(", ")}`);
-  return index;
 }
 
 function printEntry({ pr, analysis: a, analyzer, stale }: ReviewEntry) {
