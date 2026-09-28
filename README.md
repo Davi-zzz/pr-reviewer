@@ -43,7 +43,20 @@ pnpm list --level high --risk high   # only the ones that matter (minimum levels
 
 `sync` only analyzes PRs whose latest commit hasn't been analyzed yet, so running it repeatedly is cheap. If a PR gets new commits and its re-analysis fails, `list` still shows the previous analysis marked **stale**. `ANALYZER=heuristic` uses plain rules with no LLM. It's free, which makes it handy for testing the Bitbucket connection.
 
-**Cost (Opus 5, $5 / $25 per million input/output tokens):** roughly $0.05–0.30 per PR analysis, depending on diff size. `sync` prints the tokens used. Lockfiles and generated files are never sent. Very large diffs are reduced to the most sensitive files, and the model and `list` (`⚠ partial diff`) both say which files were left out.
+### Dashboard and API with Docker
+
+```sh
+docker compose up --build -d   # dashboard: http://localhost:8080, API: http://localhost:3000
+```
+
+- `api` runs the HTTP API (`/api/prs`, `/api/prs/:workspace/:repo/:id`, `/api/status`, `POST /api/sync`) and the automatic sync on `SYNC_CRON` (e.g. `0 9,14 * * 1-5`, in `SYNC_TIMEZONE`; `SYNC_LIMIT` caps PRs per scheduled run). It reads `.env`.
+- `web` is the dashboard in `front/`, served by nginx, which forwards `/api` to `api`.
+- Results live in the `reviewer-data` Docker volume, separate from `data/` used by the CLI on your machine.
+- Both ports listen on localhost only, since a sync spends API credits.
+
+Without Docker: `pnpm server` (API on :3000) and `pnpm dev` inside `front/` (dashboard on :5173).
+
+**Cost (Opus 5, $5 / $25 per million input/output tokens):** roughly $0.08–0.35 per PR analysis, depending on diff size. `sync` prints the tokens used. Lockfiles and generated files are never sent. Very large diffs are reduced to the most sensitive files, and the model and `list` (`⚠ partial diff`) both say which files were left out.
 
 ## Architecture
 

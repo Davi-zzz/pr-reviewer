@@ -10,7 +10,9 @@
     "smoke": "tsx src/cli.ts smoke",
     "server": "tsx src/server/index.ts",
     "dev": "tsx watch src/server/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server/index.js"
   },
   "engines": {
     "node": ">=20.12"

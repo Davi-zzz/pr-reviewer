@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DB_PATH: data/reviewer.db
+    volumes:
+      - reviewer-data:/app/data
+    # Localhost only: sync spends API credits, so it shouldn't be reachable from the network
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  web:
+    build: ./front
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+
+volumes:
+  # SQLite lives in a Docker volume (not a Windows folder) so its locking works reliably
+  reviewer-data:
