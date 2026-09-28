@@ -1,4 +1,6 @@
 node_modules/
+dist/
 .env
-data/
-logs/
+# Only the root folders (a bare "data/" would also hide e.g. front/src/data)
+/data/
+/logs/
